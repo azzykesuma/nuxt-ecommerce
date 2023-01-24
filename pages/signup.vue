@@ -1,24 +1,33 @@
 <template>
     <div class="main__signup">
-        <h1>Signup here</h1>
+        <h1>Register your account</h1>
         <el-container class="signup__container">
             <el-form 
                 :model="userDataForm" label-width="180px" 
                 :label-position="labelPosition"
+                class="form__signup"
                 >
                 <el-form-item label="Name *">
                     <el-input required v-model="userDataForm.name" />
-                    <span>{{ error ? errorMessage : ""}}</span>
+                    <span>{{ error.name ? errorMessage.name : ""}}</span>
                 </el-form-item>
                 <el-form-item label="Date of Birth *">
-                    <el-date-picker
+                    <client-only>
+                        <el-date-picker
                         v-model="userDataForm.dateOfBirth"
                         type="date"
-                        placeholder="Date of Birth"
-                    />
+                        placeholder="Date of birth"
+                        />
+                    </client-only>
+                    <span>{{ error.dob ? errorMessage.dob : ""}}</span>
                 </el-form-item>
                 <el-form-item label="Email *">
-                    <el-input type="email" v-model="userDataForm.email" />
+                    <el-input 
+                    type="email" 
+                    v-model="userDataForm.email"
+                    @input="checkEmail"
+                    />
+                    <span>{{ error.email ? errorMessage.email : ""}}</span>
                 </el-form-item>
                 <el-form-item label="Password *">
                     <el-input
@@ -26,7 +35,19 @@
                         type="password"
                         placeholder="Please input password"
                         show-password
-                    />
+                        @input="checkPassword"
+                    >
+                        <template #append>
+                            <el-tooltip>
+                                <template #content>
+                                     1. Password must be 6 character or more<br />
+                                     2. Password must contain 1 number value
+                                </template>
+                                <el-button :icon="InfoFilled"/>
+                            </el-tooltip>
+                        </template>
+                    </el-input>
+                    <span>{{ error.password ? errorMessage.password : ""}}</span>
                 </el-form-item>
                 <el-form-item label="Repeat your Password *">
                     <el-input
@@ -34,10 +55,20 @@
                         type="password"
                         placeholder="Please repeat your password"
                         show-password
+                        @input="checkRepPassword"
                     />
+                    <span>{{ error.repPassword ? errorMessage.repPassword : ""}}</span>
                 </el-form-item>
-                <el-button @click="handleSubmit" type="primary">Signup</el-button>
+                <el-button class="form__submitBtn" @click.prevent="handleSubmit" type="primary">Signup</el-button>
+                <el-divider />
+                <h2>Or signup using Account</h2>
+                <div class="form_logoSignup">
+                    <img src="../assets/images/facebook.png" />
+                    <img src="../assets/images/search.png" />
+                    <img src="../assets/images/shopify.png" />
+                </div>
             </el-form>
+            <p>Already have an account ? Login <NuxtLink to="/login">here</NuxtLink></p>
         </el-container>
     </div>
 </template>
@@ -50,8 +81,11 @@ import {
     ElButton,
     ElDatePicker,
     ElContainer,
+    ElTooltip,
+    ElDivider
  } from 'element-plus';
 import { ID_INJECTION_KEY } from 'element-plus'
+import { InfoFilled } from '@element-plus/icons-vue'
 
     provide(ID_INJECTION_KEY, {
     prefix: Math.floor(Math.random() * 10000),
@@ -67,22 +101,104 @@ import { ID_INJECTION_KEY } from 'element-plus'
         password: '',
         repPassword: ''
     })
-    let error = ref(false)
-    let errorName = ref(false)
-    let errorNameLength = ref(false)
-    let errorMessage = ref('')
+    const error = reactive({
+        name : false,
+        dob : false,
+        email : false,
+        password : false,
+        repPassword : false
+    })
+    let errorMessage = reactive({
+        name : '',
+        dob : '',
+        email : '',
+        password : '',
+        repPassword : ''
+    })
     const validateName = () => {
         if(!userDataForm.name) {
-            error.value = true
-            errorMessage.value = 'name is required'
+            error.name = true
+            errorMessage.name = 'name is required'
         } else if (userDataForm.name && userDataForm.name.length < 3) {
-            error.value = true
-            errorMessage.value = '3 characters'
+            error.name = true
+            errorMessage.name = 'Please input at least 3 characters'
+        } else {
+            error.name = false
+            errorMessage.name = ''
+        }
+    }
+    const validateEmail = () => {
+        if(!userDataForm.email) {
+            error.email = true
+            errorMessage.email = 'Please input your email'
+        }
+    }
+    const validatePassword = () => {
+        if(!userDataForm.password) {
+            error.password = true
+            errorMessage.password = 'Password is required'
+        } else if (!userDataForm.repPassword) {
+            error.repPassword = true
+            errorMessage.repPassword = 'Please repeat your password'
+        } 
+    }
+    const checkEmail = (value) => {
+        const regexEmail = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,24}))$/;
+        if(value) {
+            error.email = false
+            if(!regexEmail.test(value)) {
+                error.email = true
+                errorMessage.email = 'Please input a correct email format!'
+            }
+        }
+    }
+    const checkPassword = (value) => {
+        const regexDigit = /\d/
+        if(value) {
+            error.password = false
+            error.repPassword = false
+            if(value.length < 6) {
+                error.password = true
+                errorMessage.password = 'Password must contain at least 6 characters'
+            } else if (!regexDigit.test(value)) {
+                error.password = true
+                errorMessage.password = 'Password must contain at least 1 number'
+            } else {
+                error.password = false
+                errorMessage.password = ''
+            }
+        }
+    }
+    const checkRepPassword = (value) => {
+        if(value) {
+            if(value !== userDataForm.password) {
+                error.repPassword = true
+                errorMessage.repPassword = "Password doesn't match!"
+            } else {
+                error.repPassword = false
+                errorMessage.repPassword = ""
+            }
         }
     }
     const handleSubmit = () => {
-        // validating 
+        // checking all error are false
+        const readySubmit = Object.values(error).every(value => value === false)
+        // validating
         validateName()
+        if(!userDataForm.dateOfBirth) {
+            error.dob = true
+            errorMessage.dob = 'Please insert your date of birth'
+        } else {
+            error.dob = false
+            errorMessage.dob = ''
+        }
+        validateEmail()
+        validatePassword()
+        if(readySubmit) {
+            setTimeout(async () => {
+                await navigateTo('/login')
+            }, 2000);
+        }
     }
     const handleResize = () => {
         windowWidth = window.innerWidth
@@ -95,6 +211,7 @@ import { ID_INJECTION_KEY } from 'element-plus'
     onMounted(() => {
         window.addEventListener('resize', handleResize);
         handleResize()
+        console.log(error)
     })
 </script>
 
@@ -115,10 +232,31 @@ import { ID_INJECTION_KEY } from 'element-plus'
         display: block;
         max-width : 400px;
 
-        @media screen and (min-width: 375px) {
-        margin-top : 2em;
-        height : unset;
-    }
+            @media screen and (min-width: 375px) {
+            margin-top : 2em;
+            height : unset;
+        }
+
+        .form__signup {
+            display: flex;
+            flex-direction: column;
+
+            h2 {
+                font-size : 16px;
+            }
+            .form_logoSignup {
+                margin-top : 1em;
+                display : flex;
+                gap : 10px;
+                justify-content: space-between;
+                padding-inline : 10px;
+                img {
+                    width : 30px;
+                    height : 30px;
+                    cursor : pointer;
+                }
+            }
+        }
     }
 }
 </style>

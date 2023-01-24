@@ -4,7 +4,6 @@
 
 <script setup>
 import { ElButton } from 'element-plus'
-    useHead
 </script>
 
 <style lang="scss">
